@@ -86,6 +86,20 @@
 	     green_x green_y
 	     blue_x blue_y))
 
+(struct time (
+	      time))
+
+(define (parse-time chunk)
+  (printf "ZZZZ TIME ~a\n" (chunk-data chunk)) 
+  (time (chunk-data chunk)))
+
+(struct sbit (
+	      sbit))
+
+(define (parse-sbit chunk)
+  (printf "ZZZZ SBIT ~a\n" (chunk-data chunk)) 
+  (sbit (chunk-data chunk)))
+
 (define (parse-chrm chunk)
 
   (define data (chunk-data chunk))
@@ -122,11 +136,11 @@
   (set! e (+ s 4))
   (define by (bstr->int (subbytes data s e))) 
 
-  (chrm (
+  (chrm 
 	 wpx wpy
 	 rx ry
 	 gx gy
-	 bx by)))
+	 bx by))
 
 (struct bkgd (
 	      greyscale 
@@ -161,12 +175,12 @@
 	      ppu_y
 	      unit))
 
-(define (parse-phys chunk)
+(define (parse-phys chunk) 
   (define data (chunk-data chunk))
   (phys 
     (bstr->int (subbytes data 0 4))
     (bstr->int (subbytes data 4 8))
-    (bstr->int (subbytes data 8 9))))
+    (bytes-ref data 8)))
 
 ;
 ; Text
@@ -227,10 +241,14 @@
 			(set! srgb (parse-srgb c)))
 	 (define/public (set-chrm c) 
 			(set! chrm (parse-chrm c)))
+	 (define/public (set-time c) 
+			(set! time (parse-time c)))
 	 (define/public (set-bkgd c) 
 			(set! bkgd (parse-bkgd c ihdr)))
 	 (define/public (set-phys c) 
 			(set! phys (parse-phys c)))
+	 (define/public (set-sbit c) 
+			(set! sbit (parse-sbit c)))
 	 (define/public (set-data buf) 
 			(define w 
 			  (+ 1 (* (bytes-per-pixel) (ihdr-width ihdr))))
