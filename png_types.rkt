@@ -272,7 +272,8 @@
 			(for ([s scanlines])
 
 			  (PNG:unfilter bytespp prev s)
-			  (scale-out out 16 7 s)
+			  ;(scale-out out 16 7 s)
+			  (fprintf out "~a" (PNG:scan-data s))
 			  (set! prev s))
 
 			(close-output-port out))

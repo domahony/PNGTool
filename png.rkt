@@ -6,11 +6,9 @@
 (define (main)
 
   (define argv (current-command-line-arguments))
+  (define in (open-input-file (vector-ref argv 0) #:mode 'binary))
 
-  (define inpath (vector-ref argv 0))
   (define outpath (vector-ref argv 1))
-
-  (define in (open-input-file inpath #:mode 'binary))
 
   (PNG:verify-signature in)
 
@@ -18,8 +16,9 @@
 
   (define png (new PNG:png% [ihdr (PNG:parse-ihdr header)]))
 
-  (define buf (bytes-append))
-  (define (r chunk)
+  (define compressed-buf (bytes-append))
+
+  (define (process-chunks chunk)
     (define cont 
       (case (PNG:chunk-type chunk) 
 	['#"gAMA" (send png set-gama chunk) #t] 
@@ -30,18 +29,23 @@
 	['#"tEXt" (send png add-text chunk) #t] 
 	['#"tIME" (send png set-time chunk) #t]
 	['#"sBIT" (send png set-sbit chunk) #t]
-	['#"IDAT" (set! buf (bytes-append buf (PNG:chunk-data chunk))) #t] 
+	['#"IDAT" (set! compressed-buf 
+		    (bytes-append compressed-buf (PNG:chunk-data chunk))) #t] 
 	['#"IEND" #f] 
 	[else (printf "~a\n" (PNG:chunk-type chunk)) #t]))
 
       (if cont
-	(r (PNG:read-chunk in)) 
+	(process-chunks (PNG:read-chunk in)) 
 	#f))
 
-  (r (PNG:read-chunk in))
+  (process-chunks (PNG:read-chunk in))
 
+  (define uncompressed-buf 
+    (uncompress-bytes compressed-buf (send png raw-size)))
 
-  (printf "In ~a\n" inpath)
+  (send png set-data uncompressed-buf)
+  (send png decode outpath)
+
   (printf "Out ~a\n" outpath))
 
 (main)
