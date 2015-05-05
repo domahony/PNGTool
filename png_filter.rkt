@@ -4,9 +4,9 @@
   (combine-out 
 
    (prefix-out PNG:
-		(struct-out scan))))
+		(struct-out ScanLine))))
 
-(struct scan (
+(struct ScanLine (
 	      filter_method
 	      data))
 (provide
@@ -15,7 +15,7 @@
 		unfilter)))
 
 (define (unfilter bpp prev cur)
-  (case (scan-filter_method cur)
+  (case (ScanLine-filter_method cur)
     ['0 (printf "Filter None\n") (unfilter-none bpp prev cur)]
     ['1 (printf "Filter Sub\n") (unfilter-sub bpp prev cur)]
     ['2 (printf "Filter Up\n") (unfilter-up bpp prev cur)]
@@ -27,30 +27,30 @@
 
 (define (unfilter-sub bpp prev cur)
 
-  (for ([p (in-range 0 (bytes-length (scan-data cur)))])
+  (for ([p (in-range 0 (bytes-length (ScanLine-data cur)))])
 
-    (define a (get-a p bpp (scan-data cur)))
-    (define x (bytes-ref (scan-data cur) p))
+    (define a (get-a p bpp (ScanLine-data cur)))
+    (define x (bytes-ref (ScanLine-data cur) p))
 
     (printf "~a ~a ~a ~a\n" p a x (modulo (+ x a) 256))
-    (bytes-set! (scan-data cur) p (modulo (+ x a) 256)))) 
+    (bytes-set! (ScanLine-data cur) p (modulo (+ x a) 256)))) 
 
 (define (unfilter-up bpp prev cur)
 
-  (for ([p (in-range 0 (bytes-length (scan-data cur)))])
-    (define b (get-b p (scan-data cur) (scan-data prev)))
-    (define x (bytes-ref (scan-data cur) p))
-    (bytes-set! (scan-data cur) p (modulo (+ x b) 256)))) 
+  (for ([p (in-range 0 (bytes-length (ScanLine-data cur)))])
+    (define b (get-b p (ScanLine-data cur) (ScanLine-data prev)))
+    (define x (bytes-ref (ScanLine-data cur) p))
+    (bytes-set! (ScanLine-data cur) p (modulo (+ x b) 256)))) 
 
 (define (unfilter-average bpp prev cur)
   (printf "Average\n"))
 
 (define (unfilter-paeth bpp prev cur)
-  (for ([p (in-range 0 (bytes-length (scan-data cur)))])
-    (define a (get-a p bpp (scan-data cur)))
-    (define b (get-b p (scan-data cur) (scan-data prev)))
-    (define c (get-c p bpp (scan-data cur) (scan-data prev)))
-    (define x (bytes-ref (scan-data cur) p))
+  (for ([p (in-range 0 (bytes-length (ScanLine-data cur)))])
+    (define a (get-a p bpp (ScanLine-data cur)))
+    (define b (get-b p (ScanLine-data cur) (ScanLine-data prev)))
+    (define c (get-c p bpp (ScanLine-data cur) (ScanLine-data prev)))
+    (define x (bytes-ref (ScanLine-data cur) p))
 
     (define pp (- (+ a b) c))
     (define pa (abs (- pp a)))
@@ -61,7 +61,7 @@
 		 [(<= pb pc) b]
 		 [c]))
 
-    (bytes-set! (scan-data cur) p (modulo (+ x pr) 256)))) 
+    (bytes-set! (ScanLine-data cur) p (modulo (+ x pr) 256)))) 
 
 (define (get-a i bpp buf) 
   (if (< i bpp) 

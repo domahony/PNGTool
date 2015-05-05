@@ -256,7 +256,7 @@
 			(for ([i (in-range 0 (ihdr-height ihdr))]) 
 			      (define start (* i w)) 
 			      (set! scanlines (append scanlines 
-				      (list (PNG:scan 
+				      (list (PNG:ScanLine 
 					      (bytes-ref buf start) 
 					      (subbytes buf 
 							(+ 1 start) 
@@ -273,7 +273,7 @@
 
 			  (PNG:unfilter bytespp prev s)
 			  ;(scale-out out 16 7 s)
-			  (fprintf out "~a" (PNG:scan-data s))
+			  (fprintf out "~a" (PNG:ScanLine-data s))
 			  (set! prev s))
 
 			(close-output-port out))
@@ -323,7 +323,7 @@
   (exact-floor (+ 0.5 (* (/ s (- (expt 2 in) 1)) (- (expt 2 out) 1)))))
 
 (define (scale-out out is os s)
-  (define data (PNG:scan-data s))
+  (define data (PNG:ScanLine-data s))
   (for ([i (in-range 0 (bytes-length data) 2)]) 
     (define b (scale (bstr->short (subbytes data i)) is os))
     (write-byte b out)))
