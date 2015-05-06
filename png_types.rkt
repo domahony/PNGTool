@@ -1,5 +1,6 @@
 #lang racket
 
+(require (planet soegaard/gzip:2:2))
 (require "png_filter.rkt")
 
 (provide 
@@ -226,6 +227,24 @@
 	 (field [text '()])
 	 (field [ztxt '()])
 	 (field [scanlines '()])
+	 (field [compressed-buf (bytes-append)])
+
+	 (define/public (add-chunk c) 
+			(case (chunk-type c) 
+			  ['#"gAMA" (set-gama c) #t] 
+			  ['#"sRGB" (set-srgb c) #t] 
+			  ['#"cHRM" (set-chrm c) #t] 
+			  ['#"bKGD" (set-bkgd c) #t] 
+			  ['#"pHYs" (set-phys c) #t] 
+			  ['#"tEXt" (add-text c) #t] 
+			  ['#"sBIT" (set-sbit c) #t] 
+			  ['#"IDAT" (set! compressed-buf 
+				      (bytes-append compressed-buf 
+						    (chunk-data c))) #t] 
+			  ['#"IEND" (set-data 
+				      (uncompress-bytes compressed-buf 
+							(raw-size))) #f] 
+			  [else #t]))
 
 	 (define/public (add-splt p)
 			(set! splt (append splt (list p))))
