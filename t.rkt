@@ -29,29 +29,19 @@
 
 (define out (make-cvector _byte 255))
 
-(set-z_stream_s-next_in! z #"AAA AAA AAA")
-(set-z_stream_s-avail_in! z 11)
+(define data  #"David O'Mahony")
+
+(set-z_stream_s-next_in! z data)
+(set-z_stream_s-avail_in! z (bytes-length data))
 (set-z_stream_s-avail_out! z 255)
 (set-z_stream_s-next_out! z (cvector-ptr out))
-(display (make-sized-byte-string (z_stream_s-next_in z) 11))
 
-(deflateInit_ z -1 "1.2.8" (ctype-sizeof _z_stream_s))
-(display "\n")
-
-(printf "~s\n" (cvector->list out))
-;(display (z_stream_s-next_out z))
+(deflateInit_ z 9 "1.2.8" (ctype-sizeof _z_stream_s))
 (deflate z 1)
-;(write-bytes (ptr-ref (z_stream_s-next_out z) _bytes))
-(printf "~b\n" (cvector-ref out 0))
-(printf "~s\n" (cvector->list out))
 
+(define have (- 255 (z_stream_s-avail_out z)))
+(printf "~s\n" have) 
 (define op (open-output-file "op" #:mode 'binary #:exists 'replace))
-
-(fprintf op "~a" (subbytes (list->bytes (cvector->list out)) 0 14))
+(fprintf op "~a" (subbytes (list->bytes (cvector->list out)) 0 have))
 
 (close-output-port op)
-
-;(display (make-sized-byte-string (z_stream_s-next_out z) 11))
-;(display (z_stream_s-avail_out z))
-
-;(display "hello\n")
