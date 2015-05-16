@@ -20,7 +20,11 @@
 			   [adler _ulong]
 			   [reserved _ulong]))
 
-(define SIZE (* 1024 1024))
+(define Z_FINISH 4)
+(define Z_NO_FLUSH 0)
+
+;(define SIZE (* 1024 1024))
+(define SIZE (* 128 128))
 (define-z deflateInit_ (_fun _z_stream_s-pointer _int _string _int -> _int))
 (define-z deflate (_fun _z_stream_s-pointer _int -> _int))
 (define-z deflateEnd (_fun _z_stream_s-pointer -> _int))
@@ -28,9 +32,9 @@
 (define-z inflate (_fun _z_stream_s-pointer _int -> _int))
 (define-z inflateEnd (_fun _z_stream_s-pointer -> _int))
 
-;(define z (make-z_stream_s (make-bytes SIZE) 0 0 #f 0 0 #f 
-(define z (make-z_stream_s #f 0 0 #f 0 0 #f 
-			 #f #f #f #f 0 0 0))
+(define z (make-z_stream_s 
+	    #f 0 0 #f 0 0 #f 
+	    #f #f #f #f 0 0 0))
 
 (define out (malloc _byte 'raw SIZE)) 
 
@@ -38,26 +42,34 @@
   (define data (read-bytes SIZE iport))
   (define have 0) 
   (if (not (eof-object? data)) 
-    (begin
-    (set-z_stream_s-next_in! z data) 
-     (set-z_stream_s-avail_in! z (bytes-length data)) 
-     (set-z_stream_s-avail_out! z SIZE) 
-     (set-z_stream_s-next_out! z out)
-     (deflate z 1) 
-     (set! have (- SIZE (z_stream_s-avail_out z))) 
-     (printf "Have: ~s\n" have) 
-     (fprintf op "~a" (make-sized-byte-string out have)) 
-     (do_deflate iport oport))
-    #f))
+    (begin 
+      (set-z_stream_s-next_in! z data) 
+      (set-z_stream_s-avail_in! z (bytes-length data)) 
+      (set-z_stream_s-avail_out! z SIZE) 
+      (set-z_stream_s-next_out! z out)
+
+      (deflate z 
+	       (if (< (bytes-length data) SIZE) 
+		 Z_FINISH
+		 Z_NO_FLUSH))
+
+      (set! have (- SIZE (z_stream_s-avail_out z))) 
+      ;(printf "Have: ~s\n" have) 
+      (fprintf op "~a" (make-sized-byte-string out have)) 
+      (do_deflate iport oport))
+
+    (deflate z Z_FINISH)))
 
 (define (process oport) 
   (define have 0) 
   (set-z_stream_s-avail_out! z SIZE) 
   (set-z_stream_s-next_out! z out)
-  (printf "Ret: ~s\n" (inflate z 0)) 
+
+  (inflate z 0)
+
   (set! have (- SIZE (z_stream_s-avail_out z))) 
-  (printf "Have: ~s\n" have) 
   (fprintf op "~a" (make-sized-byte-string out have)) 
+
   (if (eq? have SIZE) 
     (process oport)
     #f))
@@ -82,13 +94,14 @@
   (do_inflate iport oport)
   (inflateEnd z))
 
-(define infile (open-input-file "op" #:mode 'binary))
-(define op (open-output-file "op-exploded" #:mode 'binary #:exists 'replace))
-(INF infile op)
+;(define infile (open-input-file "op" #:mode 'binary))
+;(define op (open-output-file "op-exploded" #:mode 'binary #:exists 'replace))
+;(INF infile op)
 
 ;(define infile (open-input-file "blah.zero" #:mode 'binary))
-;(define op (open-output-file "op" #:mode 'binary #:exists 'replace))
-;(DEF infile op)
+(define infile (open-input-file "t.data" #:mode 'binary))
+(define op (open-output-file "op" #:mode 'binary #:exists 'replace))
+(DEF infile op)
 
 (close-output-port op)
 (close-input-port infile)
