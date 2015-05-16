@@ -21,36 +21,39 @@
 			   [adler _ulong]
 			   [reserved _ulong]))
 
+(define SIZE 255)
 (define-z deflateInit_ (_fun _z_stream_s-pointer _int _string _int -> _int))
 (define-z deflate (_fun _z_stream_s-pointer _int -> _int))
+(define-z deflateEnd (_fun _z_stream_s-pointer -> _int))
 
-(define z (make-z_stream_s (make-bytes 255) 0 0 #f 0 0 #f 
+(define z (make-z_stream_s (make-bytes SIZE) 0 0 #f 0 0 #f 
 			 #f #f #f #f 0 0 0))
 
 (deflateInit_ z 9 "1.2.8" (ctype-sizeof _z_stream_s))
 
-(define out (make-cvector _byte 255))
+(define out (make-cvector _byte SIZE))
 (define infile (open-input-file "png_types.rkt" #:mode 'binary))
-;(define infile (open-input-file "tt" #:mode 'binary))
 (define op (open-output-file "op" #:mode 'binary #:exists 'replace))
 
 (define have 0)
 
 (define (do_chunk data) 
-  (if (eq? data eof) 
-    #f 
+  (if (not (eof-object? data)) 
     (begin
     (set-z_stream_s-next_in! z data) 
      (set-z_stream_s-avail_in! z (bytes-length data)) 
-     (set-z_stream_s-avail_out! z 255) 
+     (set-z_stream_s-avail_out! z SIZE) 
      (set-z_stream_s-next_out! z (cvector-ptr out)) 
      (deflate z 1) 
-     (set! have (- 255 (z_stream_s-avail_out z))) 
+     (set! have (- SIZE (z_stream_s-avail_out z))) 
      (printf "~s\n" have) 
      (fprintf op "~a" (subbytes (list->bytes (cvector->list out)) 0 have)) 
-     (do_chunk (read-bytes 255 infile)))))
+     (do_chunk (read-bytes SIZE infile)))
+    #f))
 
-(do_chunk (read-bytes 255 infile))
+(do_chunk (read-bytes SIZE infile))
+
+(deflateEnd z)
 
 (close-output-port op)
 (close-input-port infile)
