@@ -21,7 +21,7 @@
 			   [adler _ulong]
 			   [reserved _ulong]))
 
-(define SIZE 500)
+(define SIZE 512)
 (define-z deflateInit_ (_fun _z_stream_s-pointer _int _string _int -> _int))
 (define-z deflate (_fun _z_stream_s-pointer _int -> _int))
 (define-z deflateEnd (_fun _z_stream_s-pointer -> _int))
