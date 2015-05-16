@@ -27,21 +27,30 @@
 (define z (make-z_stream_s (make-bytes 255) 0 0 #f 0 0 #f 
 			 #f #f #f #f 0 0 0))
 
-(define out (make-cvector _byte 255))
-
-(define data  #"David O'Mahony")
-
-(set-z_stream_s-next_in! z data)
-(set-z_stream_s-avail_in! z (bytes-length data))
-(set-z_stream_s-avail_out! z 255)
-(set-z_stream_s-next_out! z (cvector-ptr out))
-
 (deflateInit_ z 9 "1.2.8" (ctype-sizeof _z_stream_s))
-(deflate z 1)
 
-(define have (- 255 (z_stream_s-avail_out z)))
-(printf "~s\n" have) 
+(define out (make-cvector _byte 255))
+(define infile (open-input-file "png_types.rkt" #:mode 'binary))
+;(define infile (open-input-file "tt" #:mode 'binary))
 (define op (open-output-file "op" #:mode 'binary #:exists 'replace))
-(fprintf op "~a" (subbytes (list->bytes (cvector->list out)) 0 have))
+
+(define have 0)
+
+(define (do_chunk data) 
+  (if (eq? data eof) 
+    #f 
+    (begin
+    (set-z_stream_s-next_in! z data) 
+     (set-z_stream_s-avail_in! z (bytes-length data)) 
+     (set-z_stream_s-avail_out! z 255) 
+     (set-z_stream_s-next_out! z (cvector-ptr out)) 
+     (deflate z 1) 
+     (set! have (- 255 (z_stream_s-avail_out z))) 
+     (printf "~s\n" have) 
+     (fprintf op "~a" (subbytes (list->bytes (cvector->list out)) 0 have)) 
+     (do_chunk (read-bytes 255 infile)))))
+
+(do_chunk (read-bytes 255 infile))
 
 (close-output-port op)
+(close-input-port infile)
