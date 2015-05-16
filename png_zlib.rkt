@@ -1,8 +1,7 @@
 #lang racket
 
-(require ffi/unsafe
-	 ffi/unsafe/define
-	 ffi/cvector)
+(require ffi/unsafe 
+	 ffi/unsafe/define)
 
 (define-ffi-definer define-z (ffi-lib "libz"))
 
@@ -21,7 +20,7 @@
 			   [adler _ulong]
 			   [reserved _ulong]))
 
-(define SIZE 512)
+(define SIZE (* 1024 1024))
 (define-z deflateInit_ (_fun _z_stream_s-pointer _int _string _int -> _int))
 (define-z deflate (_fun _z_stream_s-pointer _int -> _int))
 (define-z deflateEnd (_fun _z_stream_s-pointer -> _int))
@@ -33,7 +32,7 @@
 (define z (make-z_stream_s #f 0 0 #f 0 0 #f 
 			 #f #f #f #f 0 0 0))
 
-(define out (make-cvector _byte SIZE)) 
+(define out (malloc _byte 'raw SIZE)) 
 
 (define (do_deflate iport oport) 
   (define data (read-bytes SIZE iport))
@@ -43,22 +42,22 @@
     (set-z_stream_s-next_in! z data) 
      (set-z_stream_s-avail_in! z (bytes-length data)) 
      (set-z_stream_s-avail_out! z SIZE) 
-     (set-z_stream_s-next_out! z (cvector-ptr out)) 
+     (set-z_stream_s-next_out! z out)
      (deflate z 1) 
      (set! have (- SIZE (z_stream_s-avail_out z))) 
      (printf "Have: ~s\n" have) 
-     (fprintf op "~a" (subbytes (list->bytes (cvector->list out)) 0 have)) 
+     (fprintf op "~a" (make-sized-byte-string out have)) 
      (do_deflate iport oport))
     #f))
 
 (define (process oport) 
   (define have 0) 
   (set-z_stream_s-avail_out! z SIZE) 
-  (set-z_stream_s-next_out! z (cvector-ptr out)) 
+  (set-z_stream_s-next_out! z out)
   (printf "Ret: ~s\n" (inflate z 0)) 
   (set! have (- SIZE (z_stream_s-avail_out z))) 
   (printf "Have: ~s\n" have) 
-  (fprintf oport "~a" (subbytes (list->bytes (cvector->list out)) 0 have)) 
+  (fprintf op "~a" (make-sized-byte-string out have)) 
   (if (eq? have SIZE) 
     (process oport)
     #f))
@@ -74,7 +73,7 @@
     #f))
 
 (define (DEF iport oport) 
-  (deflateInit_ z 9 "1.2.8" (ctype-sizeof _z_stream_s))
+  (deflateInit_ z -1 "1.2.8" (ctype-sizeof _z_stream_s))
   (do_deflate iport oport)
   (deflateEnd z))
 
@@ -87,10 +86,11 @@
 (define op (open-output-file "op-exploded" #:mode 'binary #:exists 'replace))
 (INF infile op)
 
-;(define infile (open-input-file "op-exploded" #:mode 'binary))
+;(define infile (open-input-file "blah.zero" #:mode 'binary))
 ;(define op (open-output-file "op" #:mode 'binary #:exists 'replace))
 ;(DEF infile op)
 
 (close-output-port op)
 (close-input-port infile)
+(free out)
 
