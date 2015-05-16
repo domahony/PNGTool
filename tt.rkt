@@ -50,25 +50,32 @@
      (set-z_stream_s-next_out! z (cvector-ptr out)) 
      (deflate z 1) 
      (set! have (- SIZE (z_stream_s-avail_out z))) 
-     (printf "~s\n" have) 
+     (printf "Have: ~s\n" have) 
+     (printf "~a\n" out)
      (fprintf op "~a" (subbytes (list->bytes (cvector->list out)) 0 have)) 
      (do_chunk (read-bytes SIZE infile)))
     #f))
 
 ;(do_chunk (read-bytes SIZE infile))
 
+(define (process)
+      (set-z_stream_s-avail_out! z SIZE)
+      (set-z_stream_s-next_out! z (cvector-ptr out)) 
+      (inflate z 0)
+      (set! have (- SIZE (z_stream_s-avail_out z)))
+      (printf "Have: ~s\n" have) 
+      (fprintf op "~a" (subbytes (list->bytes (cvector->list out)) 0 have)) 
+      (if (eq? have SIZE)
+	(process)
+	#f))
+
 (define (do_inflate data)
   (if (not (eof-object? data))
     (begin
       (set-z_stream_s-next_in! z data)
       (set-z_stream_s-avail_in! z (bytes-length data))
-      (set-z_stream_s-avail_out! z SIZE)
-      (set-z_stream_s-next_out! z (cvector-ptr out)) 
-      (inflate z 0) 
-      (set! have (- SIZE (z_stream_s-avail_out z))) 
-      (printf "~s\n" have) 
-      (fprintf op "~a" (subbytes (list->bytes (cvector->list out)) 0 have)) 
-      (do_chunk (read-bytes SIZE infile)))
+      (process)
+      (do_inflate (read-bytes SIZE infile)))
     #f))
 
 (do_inflate (read-bytes SIZE infile))
@@ -78,3 +85,5 @@
 
 (close-output-port op)
 (close-input-port infile)
+
+;(define (inflate in out)
