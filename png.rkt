@@ -12,7 +12,9 @@
   (PNG:verify-signature in)
 
   (define header (PNG:read-chunk in))
-  (define png (new PNG:png% [ihdr (PNG:parse-ihdr header)]))
+  (define png (new PNG:png% 
+		   [ihdr (PNG:parse-ihdr header)]
+		   [output outpath]))
 
   (define (process-chunks chunk) 
     (if (send png add-chunk chunk) 
@@ -21,7 +23,7 @@
 
   (process-chunks (PNG:read-chunk in))
 
-  (send png decode outpath)
+  ;(send png decode outpath)
 
   (printf "Out ~a\n" outpath))
 
