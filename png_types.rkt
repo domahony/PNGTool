@@ -230,6 +230,7 @@
 	 (field [scanlines '()])
 	 (field [compressed-buf (bytes-append)])
 	 (field [ZLIB (new PNG:zlib_inflater%)])
+	 (field [partial (bytes-append)])
 
 	 (define/public (add-chunk c) 
 			(case (chunk-type c) 
@@ -240,10 +241,11 @@
 			  ['#"pHYs" (set-phys c) #t] 
 			  ['#"tEXt" (add-text c) #t] 
 			  ['#"sBIT" (set-sbit c) #t] 
-			  ['#"IDAT" (set! compressed-buf 
-				      (bytes-append compressed-buf
-					(send ZLIB do_inflate 
-					      (chunk-data c)))) #t]
+			  ['#"IDAT" (do_some_more (chunk-data c)) #t]
+			  ;['#"IDAT" (set! compressed-buf 
+			;	      (bytes-append compressed-buf
+			;		(send ZLIB do_inflate 
+			;		      (chunk-data c)))) #t]
 			  ;['#"IDAT" (set! compressed-buf 
 			;	      (bytes-append compressed-buf 
 			;			    (chunk-data c))) #t] 
@@ -320,6 +322,24 @@
 			(printf "h: ~s w: ~s bpp: ~s samples: ~s total: ~s\n" 
 				w h bpp samples (* w h (/ bpp 8))) 
 			(/ (* (+ w 1) h bpp) 8))
+
+	 (define (scanline-width) 
+	   (+ 1 (* (bytes-per-pixel) (ihdr-width ihdr))))
+
+	 (define (do_some_more compressed) 
+	   (define buf (send ZLIB do_inflate compressed))
+	   (set! partial (bytes-append partial buf))
+
+	   (define (doit) 
+	     (printf "make-a-new-scanline: ~a\n" (bytes-length partial)) 
+	     (set! partial (subbytes partial (scanline-width))) 
+	     (if (>= (bytes-length partial) (scanline-width))
+	       (doit)
+	       (void)))
+
+	     (if (>= (bytes-length partial) (scanline-width))
+	       (doit)
+	       (void)))
 
 	 (define (bytes-per-pixel)
 	   (define bd (ihdr-bit_depth ihdr)) 
