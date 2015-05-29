@@ -228,9 +228,14 @@
 	 (field [text '()])
 	 (field [ztxt '()])
 	 (field [scanlines '()])
+	 (field [previous-scanline 
+		  (PNG:ScanLine 0 '0)])
 	 (field [compressed-buf (bytes-append)])
 	 (field [ZLIB (new PNG:zlib_inflater%)])
 	 (field [partial (bytes-append)])
+
+	;(set! previous-scanline
+	;	  (PNG:ScanLine 0 (make-bytes (- (scanline-width) 1) '0)))
 
 	 (define/public (add-chunk c) 
 			(case (chunk-type c) 
@@ -330,16 +335,19 @@
 	   (define buf (send ZLIB do_inflate compressed))
 	   (set! partial (bytes-append partial buf))
 
-	   (define (doit) 
+	   (define (process_scanline) 
 	     (printf "make-a-new-scanline: ~a\n" (bytes-length partial)) 
+	     (define scan (PNG:ScanLine 
+			    (bytes-ref partial 0) 
+			    (subbytes partial (- (scanline-width) 1))))
 	     (set! partial (subbytes partial (scanline-width))) 
 	     (if (>= (bytes-length partial) (scanline-width))
-	       (doit)
-	       (void)))
+	       (process_scanline)
+	       (void))) 
 
-	     (if (>= (bytes-length partial) (scanline-width))
-	       (doit)
-	       (void)))
+	   (if (>= (bytes-length partial) (scanline-width)) 
+	     (process_scanline) 
+	     (void)))
 
 	 (define (bytes-per-pixel)
 	   (define bd (ihdr-bit_depth ihdr)) 
