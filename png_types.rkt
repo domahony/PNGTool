@@ -209,6 +209,8 @@
 
 	 (init-field ihdr)
 	 (init-field output)
+	 (init [previous-scanline 
+		  (PNG:ScanLine 0 (make-bytes (- (scanline-width) 1) '0))])
 
 	 (field [plte (void)])
 
@@ -228,14 +230,11 @@
 	 (field [text '()])
 	 (field [ztxt '()])
 	 (field [scanlines '()])
-	 (field [previous-scanline 
-		  (PNG:ScanLine 0 '0)])
 	 (field [compressed-buf (bytes-append)])
 	 (field [ZLIB (new PNG:zlib_inflater%)])
+
 	 (field [partial (bytes-append)])
 
-	;(set! previous-scanline
-	;	  (PNG:ScanLine 0 (make-bytes (- (scanline-width) 1) '0)))
 
 	 (define/public (add-chunk c) 
 			(case (chunk-type c) 
@@ -328,7 +327,7 @@
 				w h bpp samples (* w h (/ bpp 8))) 
 			(/ (* (+ w 1) h bpp) 8))
 
-	 (define (scanline-width) 
+	 (define/private (scanline-width) 
 	   (+ 1 (* (bytes-per-pixel) (ihdr-width ihdr))))
 
 	 (define (do_some_more compressed) 
@@ -341,6 +340,8 @@
 			    (bytes-ref partial 0) 
 			    (subbytes partial (- (scanline-width) 1))))
 	     (set! partial (subbytes partial (scanline-width))) 
+	     (set! previous-scanline scan)
+
 	     (if (>= (bytes-length partial) (scanline-width))
 	       (process_scanline)
 	       (void))) 
@@ -349,7 +350,7 @@
 	     (process_scanline) 
 	     (void)))
 
-	 (define (bytes-per-pixel)
+	 (define/private (bytes-per-pixel)
 	   (define bd (ihdr-bit_depth ihdr)) 
 	   (define samples 0) 
 	   (define bpp 
