@@ -235,7 +235,6 @@
 
 	 (field [partial (bytes-append)])
 
-
 	 (define/public (add-chunk c) 
 			(case (chunk-type c) 
 			  ['#"gAMA" (set-gama c) #t] 
@@ -272,22 +271,6 @@
 			(set! phys (parse-phys c)))
 	 (define/public (set-sbit c) 
 			(set! sbit (parse-sbit c)))
-
-	 (define/public (raw-size)
-			(define w (ihdr-width ihdr)) 
-			(define h (ihdr-height ihdr))
-			(define bd (ihdr-bit_depth ihdr))
-			(define samples 0)
-			(define bpp 
-			  (case (ihdr-color_type ihdr) 
-			    ['0 (set! samples 1) (* bd samples)]
-			    ['2 (set! samples 3) (* bd samples)]
-			    ['3 (set! samples 1) (*  8 samples)]
-			    ['4 (set! samples 2) (* bd samples)]
-			    ['6 (set! samples 4) (* bd samples)]))
-			(printf "h: ~s w: ~s bpp: ~s samples: ~s total: ~s\n" 
-				w h bpp samples (* w h (/ bpp 8))) 
-			(/ (* (+ w 1) h bpp) 8))
 
 	 (define/private (scanline-width) 
 	   (+ 1 (* (bytes-per-pixel) (ihdr-width ihdr))))
