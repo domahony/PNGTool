@@ -231,8 +231,6 @@
 	 (field [itxt '()])
 	 (field [text '()])
 	 (field [ztxt '()])
-	 (field [scanlines '()])
-	 (field [compressed-buf (bytes-append)])
 	 (field [ZLIB (new PNG:zlib_inflater%)])
 
 	 (field [partial (bytes-append)])
@@ -274,34 +272,6 @@
 			(set! phys (parse-phys c)))
 	 (define/public (set-sbit c) 
 			(set! sbit (parse-sbit c)))
-	 (define/public (set-data buf) 
-			(define w 
-			  (+ 1 (* (bytes-per-pixel) (ihdr-width ihdr))))
-
-			(for ([i (in-range 0 (ihdr-height ihdr))]) 
-			      (define start (* i w)) 
-			      (set! scanlines (append scanlines 
-				      (list (PNG:ScanLine 
-					      (bytes-ref buf start) 
-					      (subbytes buf 
-							(+ 1 start) 
-							(+ start w)))))))) 
-	 (define/public (decode f) 
-			(define out (open-output-file f
-					  #:mode 'binary
-					  #:exists 'replace))
-
-			(define bytespp (bytes-per-pixel))
-			(define prev void) 
-
-			(for ([s scanlines])
-
-			  (PNG:unfilter bytespp prev s)
-			  ;(scale-out out 16 7 s)
-			  (fprintf out "~a" (PNG:ScanLine-data s))
-			  (set! prev s))
-
-			(close-output-port out))
 
 	 (define/public (raw-size)
 			(define w (ihdr-width ihdr)) 
