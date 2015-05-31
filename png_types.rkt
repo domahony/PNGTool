@@ -211,7 +211,9 @@
 	 (init-field output)
 	 (init [previous-scanline 
 		  (PNG:ScanLine 0 (make-bytes (- (scanline-width) 1) '0))])
-
+	 (field [out (open-output-file output 
+				      #:mode 'binary 
+				      #:exists 'replace)])
 	 (field [plte (void)])
 
 	 (field [trns (void)]) 
@@ -246,18 +248,8 @@
 			  ['#"tEXt" (add-text c) #t] 
 			  ['#"sBIT" (set-sbit c) #t] 
 			  ['#"IDAT" (do_some_more (chunk-data c)) #t]
-			  ;['#"IDAT" (set! compressed-buf 
-			;	      (bytes-append compressed-buf
-			;		(send ZLIB do_inflate 
-			;		      (chunk-data c)))) #t]
-			  ;['#"IDAT" (set! compressed-buf 
-			;	      (bytes-append compressed-buf 
-			;			    (chunk-data c))) #t] 
-			  ['#"IEND" 
-			   ;(set! compressed-buf (send ZLIB do_inflate #""))
-			   (set-data compressed-buf) 
-			   (decode output) 
-			   #f]
+			  ['#"IEND" (close-output-port out) 
+			   (send ZLIB do_end) #f]
 			  [else #t]))
 
 	 (define/public (add-splt p)
@@ -330,16 +322,20 @@
 	 (define/private (scanline-width) 
 	   (+ 1 (* (bytes-per-pixel) (ihdr-width ihdr))))
 
-	 (define (do_some_more compressed) 
-	   (define buf (send ZLIB do_inflate compressed))
+	 (define (do_some_more compressed)
+	   (define buf (send ZLIB do_inflate compressed)) 
+	   (define bytespp (bytes-per-pixel))
 	   (set! partial (bytes-append partial buf))
 
 	   (define (process_scanline) 
-	     (printf "make-a-new-scanline: ~a\n" (bytes-length partial)) 
 	     (define scan (PNG:ScanLine 
 			    (bytes-ref partial 0) 
-			    (subbytes partial (- (scanline-width) 1))))
+			    (subbytes partial 1 (scanline-width))))
+	     (printf "make-a-new-scanline: ~a\n" 
+		     (bytes-length (PNG:ScanLine-data scan)))
 	     (set! partial (subbytes partial (scanline-width))) 
+	     (PNG:unfilter bytespp previous-scanline scan) 
+	     (fprintf out "~a" (PNG:ScanLine-data scan))
 	     (set! previous-scanline scan)
 
 	     (if (>= (bytes-length partial) (scanline-width))

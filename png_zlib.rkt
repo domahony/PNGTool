@@ -76,10 +76,13 @@
 			(set-z_stream_s-next_in! z data) 
 			(set-z_stream_s-avail_in! z (bytes-length data))
 			(define ret (bytes-append))
-			(if 
-			  done 
+			(if done 
 			  (eof) 
 			  (process ret)))
-			
+
+	 (define/public (do_end)
+			(if (not done) 
+			  (inflateEnd z) 
+			  (void)))
 
   	(inflateInit_ z "1.2.8" (ctype-sizeof _z_stream_s))))
