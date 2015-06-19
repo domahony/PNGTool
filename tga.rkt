@@ -1,12 +1,30 @@
 #lang racket
 
+(require "png_types.rkt")
 (require "tga_types.rkt")
 
 (define (main)
-  (define tga (new TGA:tga% [h1 "arg"]))
-  (printf "~a" "blah\n") 
-  (send tga write-header 'blah4))
 
+  (define argv (current-command-line-arguments))
+  (define in (open-input-file (vector-ref argv 0) #:mode 'binary))
+
+  (define outpath (vector-ref argv 1))
+
+  (PNG:verify-signature in)
+
+  (define header (PNG:read-chunk in))
+  (define png (new PNG:png% 
+		   [ihdr (PNG:parse-ihdr header)]
+		   [output outpath]))
+
+  (define (process-chunks chunk) 
+    (if (send png add-chunk chunk) 
+      (process-chunks (PNG:read-chunk in)) 
+      #f))
+
+  (process-chunks (PNG:read-chunk in))
+  (define tga (new TGA:tga% [png png]))
+  (printf "~a" tga))
 
 (main)
 
