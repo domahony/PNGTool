@@ -24,6 +24,9 @@
 (define tga%
   (class object%
 	 (super-new)
-	 (field [header (void)])
-	 (define/public (write-header f)
-			)))
+	 (init-field h1 [h1-i (init-header h1)])
+	 (define/public (write-header f) 
+			(printf "~a\n" h1-i))
+	 (define/private (init-header png)
+			 (printf "~a\n" png)
+			 'some-value)))
