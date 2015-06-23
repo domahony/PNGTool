@@ -27,8 +27,9 @@
 			 (printf "~a\n" (PNG:ihdr-width (get-field ihdr _png)))
 			 (printf "~a\n" (PNG:ihdr-height (get-field ihdr _png)))
 			 (header 
-			   0 0 0 
+			   0 0 2
 			   0 0
 			   0 0
-			   0 0
+			 (PNG:ihdr-width (get-field ihdr _png))
+			 (PNG:ihdr-height (get-field ihdr _png))
 			   0 0))))
