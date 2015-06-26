@@ -22,7 +22,10 @@
 	 (super-new)
 	 (init-field png [hdr (init-header png)])
 	 (define/public (write-header f) 
-			(printf "~a\n" hdr))
+			(printf "~a"
+				(bytes (arithmetic-shift (header-Width hdr) -8)))
+			(printf "~a"
+				(bytes (bitwise-and (header-Width hdr) 255))))
 	 (define/private (init-header _png)
 			 (printf "~a\n" (PNG:ihdr-width (get-field ihdr _png)))
 			 (printf "~a\n" (PNG:ihdr-height (get-field ihdr _png)))

@@ -24,7 +24,7 @@
 
   (process-chunks (PNG:read-chunk in))
   (define tga (new TGA:tga% [png png]))
-  (printf "~a" tga))
+  (send tga write-header '0))
 
 (main)
 
